@@ -1,5 +1,5 @@
 export const initialEmployees = [
-  { id: "admin", name: "Sarah Jenkins", email: "admin@apex.com", password: "admin123", role: "Admin", rating: 4.9, bio: "Senior Operations Director.", avatarColor: "from-indigo-500 to-purple-600", department: "Management", joinDate: "2022-01-10" },
+  { id: "admin", name: "Mayank Pandey", email: "admin@apex.com", password: "admin123", role: "Admin", rating: 4.9, bio: "Senior Operations Director.", avatarColor: "from-indigo-500 to-purple-600", department: "Management", joinDate: "2022-01-10" },
   { id: "emp101", name: "Alex Rivera", email: "alex@apex.com", password: "emp123", role: "Employee", designation: "Software Developer", rating: 4.8, bio: "Full Stack Engineer.", avatarColor: "from-blue-500 to-cyan-500", department: "Engineering", joinDate: "2023-03-15" },
   { id: "emp102", name: "Elena Rostova", email: "elena@apex.com", password: "emp123", role: "Employee", designation: "UI/UX Designer", rating: 4.7, bio: "Creative lead.", avatarColor: "from-pink-500 to-rose-500", department: "Design", joinDate: "2023-05-20" },
   { id: "emp103", name: "Marcus Chen", email: "marcus@apex.com", password: "emp123", role: "Employee", designation: "QA Engineer", rating: 4.5, bio: "Detail-oriented tester.", avatarColor: "from-emerald-500 to-teal-500", department: "Quality", joinDate: "2023-07-01" }
@@ -21,7 +21,7 @@ export const initialReports = [
 
 export const initialNotifications = [
   { id: "notif_1", content: "Welcome to Apex Management System! Explore your customizable dashboard.", date: "2026-05-09T10:00:00.000Z", read: false },
-  { id: "notif_2", content: "Sarah Jenkins approved your daily report for 'Develop Login & Auth Page'.", date: "2026-05-08T18:30:00.000Z", read: false, employeeId: "emp101" }
+  { id: "notif_2", content: "Mayank Pandey approved your daily report for 'Develop Login & Auth Page'.", date: "2026-05-08T18:30:00.000Z", read: false, employeeId: "emp101" }
 ];
 
 export const getStorage = (key, fallback) => {
