@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { RiSendPlaneLine, RiFileTextLine, RiMessageLine } from "react-icons/ri";
+import { RiSendPlaneLine, RiFileTextLine, RiMessageLine, RiFileExcel2Line, RiFilePdfLine } from "react-icons/ri";
 import toast from "react-hot-toast";
 import { api } from "../../utils/api";
+import { exportToExcel, exportToPDF } from "../../utils/exportUtils";
 
 export default function EmpReports() {
   const [tasks, setTasks]     = useState([]);
@@ -44,11 +45,46 @@ export default function EmpReports() {
 
   const statusStyle = { Approved: "bg-emerald-500/10 text-emerald-400", "Under Review": "bg-amber-500/10 text-amber-400", Reviewed: "bg-blue-500/10 text-blue-400" };
 
+  const handleExportExcel = () => {
+    const data = reports.map(r => ({
+      Task: r.taskName,
+      "Hours Spent": r.hours,
+      Summary: r.summary,
+      Date: r.date,
+      Status: r.status,
+      "Admin Feedback": r.adminComment || ""
+    }));
+    exportToExcel(data, "My_Daily_Reports");
+  };
+
+  const handleExportPDF = () => {
+    const columns = ["Task", "Hours", "Date", "Status"];
+    const data = reports.map(r => [
+      r.taskName,
+      r.hours,
+      r.date,
+      r.status
+    ]);
+    exportToPDF(columns, data, "My_Daily_Reports", "My Daily Work Logs");
+  };
+
   return (
     <div className="space-y-5 animate-fadeIn">
-      <div>
-        <h1 className="text-2xl font-black text-[var(--text-base)]">Daily Reports</h1>
-        <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">Submit your daily work log and track feedback</p>
+      <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+        <div>
+          <h1 className="text-2xl font-black text-[var(--text-base)]">Daily Reports</h1>
+          <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">Submit your daily work log and track feedback</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <button onClick={handleExportExcel}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold py-2 px-4 rounded-xl hover:bg-emerald-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFileExcel2Line className="text-base" /> Excel
+          </button>
+          <button onClick={handleExportPDF}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold py-2 px-4 rounded-xl hover:bg-rose-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFilePdfLine className="text-base" /> PDF
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

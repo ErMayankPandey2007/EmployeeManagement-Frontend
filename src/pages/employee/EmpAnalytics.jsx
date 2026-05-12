@@ -4,7 +4,8 @@ import HighchartsReact from "highcharts-react-official";
 const HC = HighchartsReact.default ?? HighchartsReact;
 import { api } from "../../utils/api";
 import { useApp } from "../../context/AppContext";
-import { RiStarFill } from "react-icons/ri";
+import { RiStarFill, RiFileExcel2Line, RiFilePdfLine } from "react-icons/ri";
+import { exportToExcel, exportToPDF } from "../../utils/exportUtils";
 
 export default function EmpAnalytics() {
   const { currentUser } = useApp();
@@ -46,11 +47,46 @@ export default function EmpAnalytics() {
     credits: { enabled: false }, legend: { enabled: false },
   };
 
+  const handleExportExcel = () => {
+    const data = [
+      {
+        "Total Tasks": total,
+        "Completed Tasks": completed,
+        "In Progress Tasks": inProgress,
+        "Pending Tasks": pending,
+        "Completion Rate": `${rate}%`,
+        "Reports Filed": reports.length,
+        "My Rating": currentUser?.rating?.toFixed(1) || "5.0"
+      }
+    ];
+    exportToExcel(data, "My_Analytics_Summary");
+  };
+
+  const handleExportPDF = () => {
+    const columns = ["Total Tasks", "Completed", "In Progress", "Pending", "Completion Rate", "Reports", "Rating"];
+    const data = [
+      [total, completed, inProgress, pending, `${rate}%`, reports.length, currentUser?.rating?.toFixed(1) || "5.0"]
+    ];
+    exportToPDF(columns, data, "My_Analytics_Summary", "My Analytics Overview");
+  };
+
   return (
     <div className="space-y-5 animate-fadeIn">
-      <div>
-        <h1 className="text-2xl font-black text-[var(--text-base)]">My Analytics</h1>
-        <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">Your personal productivity metrics</p>
+      <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+        <div>
+          <h1 className="text-2xl font-black text-[var(--text-base)]">My Analytics</h1>
+          <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">Your personal productivity metrics</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <button onClick={handleExportExcel}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold py-2 px-4 rounded-xl hover:bg-emerald-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFileExcel2Line className="text-base" /> Excel
+          </button>
+          <button onClick={handleExportPDF}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold py-2 px-4 rounded-xl hover:bg-rose-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFilePdfLine className="text-base" /> PDF
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

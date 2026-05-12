@@ -7,12 +7,14 @@ import Login from "./pages/Login";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminTasks from "./pages/admin/AdminTasks";
 import AdminEmployees from "./pages/admin/AdminEmployees";
+import AdminEmployeeDetails from "./pages/admin/AdminEmployeeDetails";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import EmpOverview from "./pages/employee/EmpOverview";
 import EmpTasks from "./pages/employee/EmpTasks";
 import EmpReports from "./pages/employee/EmpReports";
 import EmpAnalytics from "./pages/employee/EmpAnalytics";
+import Profile from "./pages/shared/Profile";
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { currentUser, loading } = useApp();
@@ -34,8 +36,10 @@ function AppRoutes() {
         <Route index element={<AdminOverview />} />
         <Route path="tasks" element={<AdminTasks />} />
         <Route path="employees" element={<AdminEmployees />} />
+        <Route path="employees/:id" element={<AdminEmployeeDetails />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
 
       {/* Employee Routes */}
@@ -44,6 +48,7 @@ function AppRoutes() {
         <Route path="tasks" element={<EmpTasks />} />
         <Route path="reports" element={<EmpReports />} />
         <Route path="analytics" element={<EmpAnalytics />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
 
       <Route path="*" element={<Navigate to={currentUser ? (currentUser.role === "Admin" ? "/admin" : "/dashboard") : "/login"} replace />} />

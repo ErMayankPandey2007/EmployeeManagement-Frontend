@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { RiPlayLine, RiCheckLine, RiTimeLine } from "react-icons/ri";
+import { RiPlayLine, RiCheckLine, RiTimeLine, RiFileExcel2Line, RiFilePdfLine } from "react-icons/ri";
 import toast from "react-hot-toast";
 import { api } from "../../utils/api";
+import { exportToExcel, exportToPDF } from "../../utils/exportUtils";
 
 const priorityStyle = { High: "bg-rose-500/10 text-rose-400", Medium: "bg-amber-500/10 text-amber-400", Low: "bg-emerald-500/10 text-emerald-400" };
 const statusStyle   = { Completed: "bg-emerald-500/10 text-emerald-400", "In Progress": "bg-blue-500/10 text-blue-400", Pending: "bg-amber-500/10 text-amber-400" };
@@ -24,11 +25,48 @@ export default function EmpTasks() {
 
   const filtered = filter === "All" ? tasks : tasks.filter((t) => t.status === filter);
 
+  const handleExportExcel = () => {
+    const data = filtered.map(t => ({
+      ID: t.id,
+      Name: t.name,
+      Description: t.description || "",
+      Category: t.category || "General",
+      Priority: t.priority,
+      Deadline: t.deadline,
+      Status: t.status
+    }));
+    exportToExcel(data, "My_Tasks");
+  };
+
+  const handleExportPDF = () => {
+    const columns = ["Task", "Category", "Priority", "Deadline", "Status"];
+    const data = filtered.map(t => [
+      t.name,
+      t.category || "General",
+      t.priority,
+      t.deadline,
+      t.status
+    ]);
+    exportToPDF(columns, data, "My_Tasks", "My Tasks Board");
+  };
+
   return (
     <div className="space-y-5 animate-fadeIn">
-      <div>
-        <h1 className="text-2xl font-black text-[var(--text-base)]">My Tasks</h1>
-        <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">{tasks.length} assigned · Keep your board updated</p>
+      <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+        <div>
+          <h1 className="text-2xl font-black text-[var(--text-base)]">My Tasks</h1>
+          <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">{tasks.length} assigned · Keep your board updated</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <button onClick={handleExportExcel}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold py-2 px-4 rounded-xl hover:bg-emerald-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFileExcel2Line className="text-base" /> Excel
+          </button>
+          <button onClick={handleExportPDF}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold py-2 px-4 rounded-xl hover:bg-rose-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFilePdfLine className="text-base" /> PDF
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2 flex-wrap">

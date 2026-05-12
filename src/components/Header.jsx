@@ -139,9 +139,13 @@ export default function Header() {
           )}
         </div>
 
-        <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${currentUser?.avatarColor || "from-indigo-500 to-purple-600"} flex items-center justify-center font-black text-white text-sm uppercase shrink-0`}>
-          {currentUser?.name?.charAt(0)}
-        </div>
+        {currentUser?.avatarUrl ? (
+          <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-9 h-9 rounded-xl object-cover shrink-0 border border-[var(--border-base)]" />
+        ) : (
+          <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${currentUser?.avatarColor || "from-indigo-500 to-purple-600"} flex items-center justify-center font-black text-white text-sm uppercase shrink-0`}>
+            {currentUser?.name?.charAt(0)}
+          </div>
+        )}
       </div>
     </header>
   );

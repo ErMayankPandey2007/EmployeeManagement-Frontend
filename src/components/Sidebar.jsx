@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   RiDashboardLine, RiTaskLine, RiTeamLine, RiFileTextLine,
-  RiBarChartLine, RiLogoutBoxLine, RiMenuFoldLine, RiMenuUnfoldLine
+  RiBarChartLine, RiLogoutBoxLine, RiMenuFoldLine, RiMenuUnfoldLine, RiUserSettingsLine
 } from "react-icons/ri";
 import { useApp } from "../context/AppContext";
 
@@ -16,14 +16,16 @@ export default function Sidebar() {
     { to: "/admin/tasks",      label: "Tasks Board", icon: RiTaskLine },
     { to: "/admin/employees",  label: "Employees",  icon: RiTeamLine },
     { to: "/admin/reports",    label: "Daily Logs", icon: RiFileTextLine },
-    { to: "/admin/analytics",  label: "Analytics",  icon: RiBarChartLine }
+    { to: "/admin/analytics",  label: "Analytics",  icon: RiBarChartLine },
+    { to: "/admin/profile",    label: "My Profile", icon: RiUserSettingsLine }
   ];
 
   const empLinks = [
     { to: "/dashboard",            label: "Dashboard",   icon: RiDashboardLine, end: true },
     { to: "/dashboard/tasks",      label: "My Tasks",    icon: RiTaskLine },
     { to: "/dashboard/reports",    label: "Daily Report",icon: RiFileTextLine },
-    { to: "/dashboard/analytics",  label: "My Analytics",icon: RiBarChartLine }
+    { to: "/dashboard/analytics",  label: "My Analytics",icon: RiBarChartLine },
+    { to: "/dashboard/profile",    label: "My Profile",  icon: RiUserSettingsLine }
   ];
 
   const links = isAdmin ? adminLinks : empLinks;
@@ -107,9 +109,13 @@ export default function Sidebar() {
           {sidebarOpen ? (
             <div className="flex items-center justify-between gap-2 bg-[var(--bg-base)]/50 p-2.5 rounded-xl border border-[var(--border-base)]/50">
               <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${currentUser?.avatarColor || "from-indigo-500 to-purple-600"} flex items-center justify-center font-black text-white text-xs shrink-0 uppercase`}>
-                  {currentUser?.name?.charAt(0)}
-                </div>
+                {currentUser?.avatarUrl ? (
+                  <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                ) : (
+                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${currentUser?.avatarColor || "from-indigo-500 to-purple-600"} flex items-center justify-center font-black text-white text-xs shrink-0 uppercase`}>
+                    {currentUser?.name?.charAt(0)}
+                  </div>
+                )}
                 <div className="overflow-hidden">
                   <p className="text-xs font-bold truncate text-[var(--text-base)]">{currentUser?.name}</p>
                   <p className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-wider">{currentUser?.role}</p>

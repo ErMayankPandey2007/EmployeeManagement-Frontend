@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { RiCheckboxCircleLine, RiCloseLine, RiMessageLine, RiFileTextLine } from "react-icons/ri";
+import { RiCheckboxCircleLine, RiCloseLine, RiMessageLine, RiFileTextLine, RiFileExcel2Line, RiFilePdfLine } from "react-icons/ri";
 import toast from "react-hot-toast";
 import { api } from "../../utils/api";
+import { exportToExcel, exportToPDF } from "../../utils/exportUtils";
 
 const statusStyle = { Approved: "bg-emerald-500/10 text-emerald-400", "Under Review": "bg-amber-500/10 text-amber-400", Reviewed: "bg-blue-500/10 text-blue-400" };
 
@@ -28,11 +29,48 @@ export default function AdminReports() {
     }
   };
 
+  const handleExportExcel = () => {
+    const data = reports.map(r => ({
+      Employee: r.employeeName,
+      Task: r.taskName,
+      "Hours Spent": r.hours,
+      Summary: r.summary,
+      Date: r.date,
+      Status: r.status,
+      "Admin Feedback": r.adminComment || ""
+    }));
+    exportToExcel(data, "Daily_Reports");
+  };
+
+  const handleExportPDF = () => {
+    const columns = ["Employee", "Task", "Hours", "Date", "Status"];
+    const data = reports.map(r => [
+      r.employeeName,
+      r.taskName,
+      r.hours,
+      r.date,
+      r.status
+    ]);
+    exportToPDF(columns, data, "Daily_Reports", "Daily Work Logs");
+  };
+
   return (
     <div className="space-y-5 animate-fadeIn">
-      <div>
-        <h1 className="text-2xl font-black text-[var(--text-base)]">Daily Work Logs</h1>
-        <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">{reports.length} submissions · Review and approve</p>
+      <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+        <div>
+          <h1 className="text-2xl font-black text-[var(--text-base)]">Daily Work Logs</h1>
+          <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">{reports.length} submissions · Review and approve</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <button onClick={handleExportExcel}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold py-2 px-4 rounded-xl hover:bg-emerald-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFileExcel2Line className="text-base" /> Excel
+          </button>
+          <button onClick={handleExportPDF}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold py-2 px-4 rounded-xl hover:bg-rose-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFilePdfLine className="text-base" /> PDF
+          </button>
+        </div>
       </div>
 
       <div className="bg-[var(--card-base)] border border-[var(--border-base)] rounded-2xl overflow-hidden">

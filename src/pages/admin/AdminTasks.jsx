@@ -3,10 +3,11 @@ import {
   Table, Thead, Tbody, Tr, Th, Td, Badge, IconButton,
   Tooltip, Box, HStack, Text, Select as CSelect,
 } from "@chakra-ui/react";
-import { RiAddLine, RiDeleteBin6Line, RiEditLine, RiSearchLine, RiFilterLine, RiCheckLine, RiCloseLine, RiTaskLine, RiArrowLeftLine, RiArrowRightLine } from "react-icons/ri";
+import { RiAddLine, RiDeleteBin6Line, RiEditLine, RiSearchLine, RiFilterLine, RiCheckLine, RiCloseLine, RiTaskLine, RiArrowLeftLine, RiArrowRightLine, RiFileExcel2Line, RiFilePdfLine } from "react-icons/ri";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 import { api } from "../../utils/api";
+import { exportToExcel, exportToPDF } from "../../utils/exportUtils";
 
 const STATUSES   = ["All", "Pending", "In Progress", "Completed"];
 const PRIORITIES = ["Low", "Medium", "High"];
@@ -132,18 +133,55 @@ export default function AdminTasks() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const handleExportExcel = () => {
+    const data = filtered.map(t => ({
+      ID: t.id,
+      Name: t.name,
+      Description: t.description || "",
+      "Assigned To": t.employeeName || t.employeeId,
+      Category: t.category || "General",
+      Priority: t.priority,
+      Deadline: t.deadline,
+      Status: t.status
+    }));
+    exportToExcel(data, "Tasks_Board");
+  };
+
+  const handleExportPDF = () => {
+    const columns = ["Task", "Assigned To", "Category", "Priority", "Deadline", "Status"];
+    const data = filtered.map(t => [
+      t.name,
+      t.employeeName || t.employeeId,
+      t.category || "General",
+      t.priority,
+      t.deadline,
+      t.status
+    ]);
+    exportToPDF(columns, data, "Tasks_Board", "Tasks Board");
+  };
+
   return (
     <div className="space-y-5 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
+      <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
         <div>
           <h1 className="text-2xl font-black text-[var(--text-base)]">Tasks Board</h1>
           <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">{filtered.length} tasks · Assign, track and manage</p>
         </div>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-white font-bold py-2.5 px-5 rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all text-sm">
-          <RiAddLine className="text-lg" /> Assign Task
-        </button>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <button onClick={handleExportExcel}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold py-2 px-4 rounded-xl hover:bg-emerald-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFileExcel2Line className="text-base" /> Excel
+          </button>
+          <button onClick={handleExportPDF}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold py-2 px-4 rounded-xl hover:bg-rose-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFilePdfLine className="text-base" /> PDF
+          </button>
+          <button onClick={openCreate}
+            className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-white font-bold py-2.5 px-5 rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all text-sm">
+            <RiAddLine className="text-lg" /> Assign Task
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

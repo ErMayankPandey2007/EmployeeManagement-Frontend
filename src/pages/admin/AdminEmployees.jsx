@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { RiUserAddLine, RiDeleteBin6Line, RiEditLine, RiEyeLine, RiSearchLine, RiCloseLine, RiCheckLine, RiStarFill, RiMailLine, RiCalendarLine } from "react-icons/ri";
+import { useNavigate } from "react-router-dom";
+import { RiUserAddLine, RiDeleteBin6Line, RiEditLine, RiEyeLine, RiSearchLine, RiCloseLine, RiCheckLine, RiStarFill, RiMailLine, RiCalendarLine, RiFileExcel2Line, RiFilePdfLine } from "react-icons/ri";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 import { api } from "../../utils/api";
+import { exportToExcel, exportToPDF } from "../../utils/exportUtils";
 
 const DEPARTMENTS = ["Engineering", "Design", "Quality", "Marketing", "HR", "Finance", "Operations"];
-const emptyForm   = { name: "", email: "", password: "", designation: "", department: "" };
+const emptyForm   = { name: "", email: "", password: "", designation: "", department: "", loginAllowedFrom: "", loginAllowedUntil: "", firstLoginDeadline: "" };
 
 // ── Moved OUTSIDE to prevent remount on every render ──
 const Modal = ({ onClose, children }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-    <div className="w-full max-w-md bg-[var(--card-base)] border border-[var(--border-base)] rounded-2xl shadow-2xl animate-slideUp">
+    <div className="w-full max-w-md bg-[var(--card-base)] border border-[var(--border-base)] rounded-2xl shadow-2xl animate-slideUp max-h-[90vh] flex flex-col">
       {children}
     </div>
   </div>
@@ -37,8 +39,9 @@ export default function AdminEmployees() {
   const [form, setForm]           = useState(emptyForm);
   const [errors, setErrors]       = useState({});
   const [showForm, setShowForm]   = useState(false);
-  const [viewEmp, setViewEmp]     = useState(null);
+  const [editId, setEditId]       = useState(null);
   const [saving, setSaving]       = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     api.getEmployees().then(setEmployees).catch(() => {});
@@ -55,29 +58,59 @@ export default function AdminEmployees() {
     if (!form.name.trim())        e.name        = "Full name is required";
     if (!form.email.trim())       e.email       = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email";
-    if (!form.password.trim())    e.password    = "Password is required";
-    else if (form.password.length < 4) e.password = "Minimum 4 characters";
+    
+    // Password only required for creation
+    if (!editId) {
+      if (!form.password.trim())    e.password    = "Password is required";
+      else if (form.password.length < 4) e.password = "Minimum 4 characters";
+    } else {
+      if (form.password && form.password.length < 4) e.password = "Minimum 4 characters";
+    }
+
     if (!form.designation.trim()) e.designation = "Designation is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const closeForm = () => { setShowForm(false); setForm(emptyForm); setErrors({}); };
+  const closeForm = () => { setShowForm(false); setForm(emptyForm); setErrors({}); setEditId(null); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
     setSaving(true);
     try {
-      const newEmp = await api.createEmployee(form);
-      setEmployees((prev) => [...prev, newEmp]);
-      toast.success(`${form.name} onboarded!`);
+      if (editId) {
+        const updated = await api.updateEmployee(editId, form);
+        setEmployees((prev) => prev.map(emp => emp.id === editId ? updated : emp));
+        toast.success(`Updated ${form.name}!`);
+      } else {
+        const newEmp = await api.createEmployee(form);
+        setEmployees((prev) => [...prev, newEmp]);
+        toast.success(`${form.name} onboarded!`);
+      }
       closeForm();
     } catch (err) {
       toast.error(err.message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEditClick = (emp) => {
+    const toDateLocal = (d) => d ? new Date(new Date(d).getTime() - (new Date(d).getTimezoneOffset() * 60000)).toISOString().slice(0,16) : "";
+    setEditId(emp.id);
+    setForm({
+      name:               emp.name || "",
+      email:              emp.email || "",
+      password:           "",
+      designation:        emp.designation || "",
+      department:         emp.department || "",
+      loginAllowedFrom:   toDateLocal(emp.loginAllowedFrom),
+      loginAllowedUntil:  toDateLocal(emp.loginAllowedUntil),
+      firstLoginDeadline: toDateLocal(emp.firstLoginDeadline),
+    });
+    setErrors({});
+    setShowForm(true);
   };
 
   const handleDelete = async (id, name) => {
@@ -106,18 +139,55 @@ export default function AdminEmployees() {
     (e.department  || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleExportExcel = () => {
+    const data = filtered.map(e => ({
+      ID: e.id,
+      Name: e.name,
+      Email: e.email,
+      Designation: e.designation,
+      Department: e.department,
+      "Join Date": e.joinDate,
+      Rating: e.rating?.toFixed(1) || "5.0",
+      Status: e.isActive ? "Active" : "Inactive"
+    }));
+    exportToExcel(data, "Employees_Directory");
+  };
+
+  const handleExportPDF = () => {
+    const columns = ["Name", "Email", "Designation", "Department", "Joined", "Status"];
+    const data = filtered.map(e => [
+      e.name,
+      e.email,
+      e.designation || "-",
+      e.department || "-",
+      e.joinDate || "-",
+      e.isActive ? "Active" : "Inactive"
+    ]);
+    exportToPDF(columns, data, "Employees_Directory", "Employee Directory");
+  };
+
   return (
     <div className="space-y-5 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
+      <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
         <div>
           <h1 className="text-2xl font-black text-[var(--text-base)]">Employee Directory</h1>
           <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">{filtered.length} members · Manage your team</p>
         </div>
-        <button onClick={() => { setForm(emptyForm); setErrors({}); setShowForm(true); }}
-          className="flex items-center gap-2 bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-white font-bold py-2.5 px-5 rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all text-sm">
-          <RiUserAddLine className="text-lg" /> Onboard Member
-        </button>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <button onClick={handleExportExcel}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold py-2 px-4 rounded-xl hover:bg-emerald-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFileExcel2Line className="text-base" /> Excel
+          </button>
+          <button onClick={handleExportPDF}
+            className="flex-1 md:flex-none items-center justify-center gap-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold py-2 px-4 rounded-xl hover:bg-rose-500 hover:text-white cursor-pointer transition-all text-xs flex">
+            <RiFilePdfLine className="text-base" /> PDF
+          </button>
+          <button onClick={() => { setEditId(null); setForm(emptyForm); setErrors({}); setShowForm(true); }}
+            className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-white font-bold py-2.5 px-5 rounded-xl shadow-lg hover:brightness-110 active:scale-[0.98] cursor-pointer transition-all text-sm">
+            <RiUserAddLine className="text-lg" /> Onboard Member
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -145,9 +215,13 @@ export default function AdminEmployees() {
                 <tr key={emp.id} className="border-b border-[var(--border-base)]/50 hover:bg-[var(--bg-base)]/60 transition-colors last:border-0">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${emp.avatarColor} flex items-center justify-center font-black text-white text-sm uppercase shadow shrink-0`}>
-                        {emp.name.charAt(0)}
-                      </div>
+                      {emp.avatarUrl ? (
+                        <img src={emp.avatarUrl} alt={emp.name} className="w-9 h-9 rounded-xl object-cover shadow shrink-0 border border-[var(--border-base)]" />
+                      ) : (
+                        <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${emp.avatarColor} flex items-center justify-center font-black text-white text-sm uppercase shadow shrink-0`}>
+                          {emp.name.charAt(0)}
+                        </div>
+                      )}
                       <div>
                         <p className="font-black text-[var(--text-base)]">{emp.name}</p>
                         <p className="text-[10px] text-[var(--text-base)] opacity-45">{emp.email}</p>
@@ -167,9 +241,13 @@ export default function AdminEmployees() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      <button onClick={() => setViewEmp(emp)} title="View"
+                      <button onClick={() => navigate(`/admin/employees/${emp.id}`)} title="View Profile"
                         className="p-1.5 rounded-lg hover:bg-[var(--bg-base)] text-[var(--primary)] cursor-pointer transition-all">
                         <RiEyeLine className="text-base" />
+                      </button>
+                      <button onClick={() => handleEditClick(emp)} title="Edit"
+                        className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-400 cursor-pointer transition-all">
+                        <RiEditLine className="text-base" />
                       </button>
                       <button onClick={() => handleDelete(emp.id, emp.name)} title="Delete"
                         className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-400 cursor-pointer transition-all">
@@ -188,15 +266,15 @@ export default function AdminEmployees() {
       {showForm && (
         <Modal onClose={closeForm}>
           <div className="flex justify-between items-center px-6 pt-5 pb-4 border-b border-[var(--border-base)]">
-            <h3 className="font-black text-sm text-[var(--text-base)]">Onboard New Member</h3>
+            <h3 className="font-black text-sm text-[var(--text-base)]">{editId ? "Edit Member Details" : "Onboard New Member"}</h3>
             <button onClick={closeForm} className="p-1.5 rounded-lg hover:bg-[var(--bg-base)] text-[var(--text-base)] opacity-60 hover:opacity-100 cursor-pointer">
               <RiCloseLine className="text-xl" />
             </button>
           </div>
-          <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4 overflow-y-auto custom-scrollbar">
             <Field label="Full Name"       fkey="name"        placeholder="e.g. Kevin Sterling"    form={form} errors={errors} onChange={handleFieldChange} />
             <Field label="Email Address"   fkey="email"       type="email" placeholder="e.g. kevin@apex.com" form={form} errors={errors} onChange={handleFieldChange} />
-            <Field label="Portal Password" fkey="password"    type="password" placeholder="Min. 4 characters" form={form} errors={errors} onChange={handleFieldChange} />
+            <Field label="Portal Password" fkey="password"    type="password" placeholder={editId ? "Leave blank to keep current" : "Min. 4 characters"} form={form} errors={errors} onChange={handleFieldChange} />
             <Field label="Designation"     fkey="designation" placeholder="e.g. Backend Developer" form={form} errors={errors} onChange={handleFieldChange} />
             <div>
               <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text-base)] opacity-50">Department</label>
@@ -206,6 +284,16 @@ export default function AdminEmployees() {
                 {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
+
+            {/* Login Restrictions Title */}
+            <div className="pt-2 border-t border-[var(--border-base)]/50">
+              <h4 className="text-[11px] font-black text-[var(--primary)] uppercase tracking-wider mb-2">Login Constraints</h4>
+              <div className="grid grid-cols-1 gap-3">
+                <Field label="Allowed Login From" type="datetime-local" fkey="loginAllowedFrom" form={form} errors={errors} onChange={handleFieldChange} />
+                <Field label="Allowed Login Until" type="datetime-local" fkey="loginAllowedUntil" form={form} errors={errors} onChange={handleFieldChange} />
+
+              </div>
+            </div>
             <div className="flex justify-end gap-3 pt-1">
               <button type="button" onClick={closeForm}
                 className="px-4 py-2.5 rounded-xl border border-[var(--border-base)] text-xs font-bold text-[var(--text-base)] hover:bg-[var(--bg-base)] cursor-pointer transition-all">
@@ -213,50 +301,14 @@ export default function AdminEmployees() {
               </button>
               <button type="submit" disabled={saving}
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-white text-xs font-bold hover:brightness-110 cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-60">
-                <RiCheckLine /> Onboard Member
+                <RiCheckLine /> {editId ? "Save Changes" : "Onboard Member"}
               </button>
             </div>
           </form>
         </Modal>
       )}
 
-      {/* View Modal */}
-      {viewEmp && (
-        <Modal onClose={() => setViewEmp(null)}>
-          <div className="flex justify-between items-center px-6 pt-5 pb-4 border-b border-[var(--border-base)]">
-            <h3 className="font-black text-sm text-[var(--text-base)]">Employee Details</h3>
-            <button onClick={() => setViewEmp(null)} className="p-1.5 rounded-lg hover:bg-[var(--bg-base)] text-[var(--text-base)] opacity-60 hover:opacity-100 cursor-pointer">
-              <RiCloseLine className="text-xl" />
-            </button>
-          </div>
-          <div className="px-6 py-5 space-y-4">
-            <div className="flex flex-col items-center gap-3">
-              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-tr ${viewEmp.avatarColor} flex items-center justify-center font-black text-white text-2xl uppercase shadow-lg`}>
-                {viewEmp.name.charAt(0)}
-              </div>
-              <div className="text-center">
-                <p className="font-black text-base text-[var(--text-base)]">{viewEmp.name}</p>
-                <p className="text-xs text-[var(--primary)] font-bold">{viewEmp.designation || "Employee"}</p>
-              </div>
-            </div>
-            <div className="bg-[var(--bg-base)] rounded-xl border border-[var(--border-base)] divide-y divide-[var(--border-base)]">
-              {[
-                ["Email",      viewEmp.email],
-                ["Department", viewEmp.department || "—"],
-                ["Joined",     viewEmp.joinDate   || "—"],
-                ["Rating",     `⭐ ${viewEmp.rating?.toFixed(1)}`],
-                ["Total Tasks",  tasks.filter((t) => t.employeeId === viewEmp.id).length],
-                ["Completed",    tasks.filter((t) => t.employeeId === viewEmp.id && t.status === "Completed").length],
-              ].map(([label, val]) => (
-                <div key={label} className="flex justify-between items-center px-4 py-2.5 text-xs">
-                  <span className="text-[var(--text-base)] opacity-50 font-bold">{label}</span>
-                  <span className="font-black text-[var(--text-base)]">{val}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Modal>
-      )}
+
     </div>
   );
 }
