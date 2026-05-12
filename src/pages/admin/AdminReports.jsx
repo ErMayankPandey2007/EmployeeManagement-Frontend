@@ -1,35 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { RiCheckboxCircleLine, RiCloseLine, RiMessageLine, RiFileTextLine } from "react-icons/ri";
 import toast from "react-hot-toast";
-import { getStorage, setStorage } from "../../utils/mockData";
+import { api } from "../../utils/api";
 
 const statusStyle = { Approved: "bg-emerald-500/10 text-emerald-400", "Under Review": "bg-amber-500/10 text-amber-400", Reviewed: "bg-blue-500/10 text-blue-400" };
 
 export default function AdminReports() {
-  const [reports, setReports] = useState([]);
+  const [reports, setReports]   = useState([]);
   const [selected, setSelected] = useState(null);
-  const [comment, setComment] = useState("");
+  const [comment, setComment]   = useState("");
+  const [saving, setSaving]     = useState(false);
 
-  useEffect(() => { setReports(getStorage("apex_reports", [])); }, []);
+  useEffect(() => { api.getReports().then(setReports).catch(() => {}); }, []);
 
-  const saveReports = (updated) => { setReports(updated); setStorage("apex_reports", updated); };
-
-  const handleApprove = (id) => {
-    const rep = reports.find((r) => r.id === id);
-    const updated = reports.map((r) => r.id === id ? { ...r, status: "Approved", adminComment: comment || "Approved by Administrator." } : r);
-    saveReports(updated);
-    const notifs = getStorage("apex_notifications", []);
-    setStorage("apex_notifications", [{ id: "notif_" + Date.now(), content: `Your report for "${rep.taskName}" was approved!`, date: new Date().toISOString(), read: false, employeeId: rep.employeeId }, ...notifs]);
-    toast.success("Report approved!");
-    setSelected(null); setComment("");
-  };
-
-  const handleComment = (id) => {
-    if (!comment.trim()) return toast.error("Please write a comment first.");
-    const updated = reports.map((r) => r.id === id ? { ...r, status: "Reviewed", adminComment: comment } : r);
-    saveReports(updated);
-    toast.success("Comment posted.");
-    setSelected(null); setComment("");
+  const handleReview = async (status) => {
+    if (status === "Reviewed" && !comment.trim()) return toast.error("Please write a comment first.");
+    setSaving(true);
+    try {
+      const updated = await api.reviewReport(selected.id, { status, adminComment: comment || "Approved by Administrator." });
+      setReports((prev) => prev.map((r) => r.id === updated.id ? updated : r));
+      toast.success(status === "Approved" ? "Report approved!" : "Comment posted.");
+      setSelected(null); setComment("");
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -79,7 +75,6 @@ export default function AdminReports() {
         </div>
       </div>
 
-      {/* Review Modal */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-lg bg-[var(--card-base)] border border-[var(--border-base)] rounded-2xl shadow-2xl p-6 animate-slideUp">
@@ -106,10 +101,10 @@ export default function AdminReports() {
                   className="w-full bg-[var(--bg-base)]/60 border border-[var(--border-base)] text-xs p-3 rounded-xl text-[var(--text-base)] outline-none focus:border-[var(--primary)] transition-all resize-none" />
               </div>
               <div className="flex justify-between gap-3 pt-1">
-                <button onClick={() => handleComment(selected.id)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[var(--border-base)] text-xs font-bold text-[var(--text-base)] hover:bg-[var(--bg-base)] cursor-pointer transition-all">
+                <button onClick={() => handleReview("Reviewed")} disabled={saving} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[var(--border-base)] text-xs font-bold text-[var(--text-base)] hover:bg-[var(--bg-base)] cursor-pointer transition-all disabled:opacity-60">
                   <RiMessageLine /> Post Comment
                 </button>
-                <button onClick={() => handleApprove(selected.id)} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold hover:brightness-110 cursor-pointer transition-all shadow-lg">
+                <button onClick={() => handleReview("Approved")} disabled={saving} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold hover:brightness-110 cursor-pointer transition-all shadow-lg disabled:opacity-60">
                   <RiCheckboxCircleLine className="text-base" /> Approve Report
                 </button>
               </div>

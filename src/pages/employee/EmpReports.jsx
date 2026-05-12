@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { RiSendPlaneLine, RiFileTextLine, RiCheckboxCircleLine, RiMessageLine } from "react-icons/ri";
+import { RiSendPlaneLine, RiFileTextLine, RiMessageLine } from "react-icons/ri";
 import toast from "react-hot-toast";
-import { getStorage, setStorage } from "../../utils/mockData";
-import { useApp } from "../../context/AppContext";
+import { api } from "../../utils/api";
 
 export default function EmpReports() {
-  const { currentUser } = useApp();
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks]     = useState([]);
   const [reports, setReports] = useState([]);
-  const [form, setForm] = useState({ taskId: "", hours: 8, summary: "" });
-  const [errors, setErrors] = useState({});
+  const [form, setForm]       = useState({ taskId: "", hours: 8, summary: "" });
+  const [errors, setErrors]   = useState({});
+  const [saving, setSaving]   = useState(false);
 
   useEffect(() => {
-    setTasks(getStorage("apex_tasks", []).filter((t) => t.employeeId === currentUser?.id));
-    setReports(getStorage("apex_reports", []).filter((r) => r.employeeId === currentUser?.id));
-  }, [currentUser]);
+    api.getTasks().then(setTasks).catch(() => {});
+    api.getReports().then(setReports).catch(() => {});
+  }, []);
 
   const validate = () => {
     const e = {};
@@ -25,26 +24,22 @@ export default function EmpReports() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
     const task = tasks.find((t) => t.id === form.taskId);
-    const newReport = {
-      id: "report_" + Date.now(),
-      employeeId: currentUser.id, employeeName: currentUser.name,
-      taskId: form.taskId, taskName: task?.name || "Work",
-      hours: form.hours, date: new Date().toISOString().split("T")[0],
-      summary: form.summary, status: "Under Review", adminComment: ""
-    };
-    const globalReports = getStorage("apex_reports", []);
-    const updated = [newReport, ...reports];
-    setReports(updated);
-    setStorage("apex_reports", [newReport, ...globalReports]);
-    const notifs = getStorage("apex_notifications", []);
-    setStorage("apex_notifications", [{ id: "notif_" + Date.now(), content: `${currentUser.name} submitted a daily log for "${newReport.taskName}"`, date: new Date().toISOString(), read: false }, ...notifs]);
-    toast.success("Daily report submitted successfully!");
-    setForm({ taskId: "", hours: 8, summary: "" });
-    setErrors({});
+    setSaving(true);
+    try {
+      const newReport = await api.createReport({ taskId: form.taskId, taskName: task?.name || "Work", hours: form.hours, summary: form.summary });
+      setReports((prev) => [newReport, ...prev]);
+      toast.success("Daily report submitted successfully!");
+      setForm({ taskId: "", hours: 8, summary: "" });
+      setErrors({});
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const statusStyle = { Approved: "bg-emerald-500/10 text-emerald-400", "Under Review": "bg-amber-500/10 text-amber-400", Reviewed: "bg-blue-500/10 text-blue-400" };
@@ -57,7 +52,6 @@ export default function EmpReports() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Submit Form */}
         <div className="bg-[var(--card-base)] border border-[var(--border-base)] rounded-2xl p-5 h-fit">
           <h2 className="font-black text-sm text-[var(--text-base)] flex items-center gap-2 mb-5">
             <RiFileTextLine className="text-[var(--primary)] text-lg" /> Submit Work Log
@@ -85,19 +79,20 @@ export default function EmpReports() {
 
             <div>
               <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text-base)] opacity-50">Activity Summary *</label>
-              <textarea placeholder="Describe what you accomplished today, any blockers, and next steps..." value={form.summary} onChange={(e) => { setForm((p) => ({ ...p, summary: e.target.value })); setErrors((p) => ({ ...p, summary: "" })); }} rows={5}
+              <textarea placeholder="Describe what you accomplished today, any blockers, and next steps..." value={form.summary}
+                onChange={(e) => { setForm((p) => ({ ...p, summary: e.target.value })); setErrors((p) => ({ ...p, summary: "" })); }} rows={5}
                 className={`mt-1.5 w-full bg-[var(--bg-base)] border ${errors.summary ? "border-rose-500" : "border-[var(--border-base)]"} text-xs p-3 rounded-xl text-[var(--text-base)] outline-none focus:border-[var(--primary)] transition-all resize-none`} />
               {errors.summary && <p className="text-rose-400 text-[10px] mt-1 font-semibold">⚠ {errors.summary}</p>}
               <p className="text-[10px] text-[var(--text-base)] opacity-30 mt-1 font-semibold">{form.summary.length} chars (min 20)</p>
             </div>
 
-            <button type="submit" className="w-full bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] hover:brightness-110 active:scale-[0.98] text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg">
+            <button type="submit" disabled={saving}
+              className="w-full bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] hover:brightness-110 active:scale-[0.98] disabled:opacity-60 text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg">
               <RiSendPlaneLine className="text-lg" /> Submit Report
             </button>
           </form>
         </div>
 
-        {/* Past Reports */}
         <div className="lg:col-span-2 space-y-4">
           <h2 className="font-black text-sm text-[var(--text-base)] uppercase tracking-wider opacity-70">My Submissions ({reports.length})</h2>
           {reports.length === 0 ? (

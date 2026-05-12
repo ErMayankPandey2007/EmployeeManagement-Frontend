@@ -15,7 +15,8 @@ import EmpReports from "./pages/employee/EmpReports";
 import EmpAnalytics from "./pages/employee/EmpAnalytics";
 
 function ProtectedRoute({ children, adminOnly = false }) {
-  const { currentUser } = useApp();
+  const { currentUser, loading } = useApp();
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[var(--bg-base)]"><span className="w-8 h-8 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" /></div>;
   if (!currentUser) return <Navigate to="/login" replace />;
   if (adminOnly && currentUser.role !== "Admin") return <Navigate to="/dashboard" replace />;
   if (!adminOnly && currentUser.role === "Admin") return <Navigate to="/admin" replace />;

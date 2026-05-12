@@ -1,25 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { RiTaskLine, RiTeamLine, RiCheckboxCircleLine, RiTimeLine, RiArrowRightLine, RiBarChartLine } from "react-icons/ri";
+import { RiTaskLine, RiCheckboxCircleLine, RiTimeLine, RiArrowRightLine, RiBarChartLine } from "react-icons/ri";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 const HC = HighchartsReact.default ?? HighchartsReact;
-import { getStorage } from "../../utils/mockData";
+import { api } from "../../utils/api";
 
 export default function AdminOverview() {
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks]         = useState([]);
   const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
-    setTasks(getStorage("apex_tasks", []));
-    setEmployees(getStorage("apex_employees", []));
+    api.getTasks().then(setTasks).catch(() => {});
+    api.getEmployees().then(setEmployees).catch(() => {});
   }, []);
 
-  const total = tasks.length;
-  const pending = tasks.filter((t) => t.status === "Pending").length;
+  const empList  = employees.filter((e) => e.role !== "Admin");
+  const total      = tasks.length;
+  const pending    = tasks.filter((t) => t.status === "Pending").length;
   const inProgress = tasks.filter((t) => t.status === "In Progress").length;
-  const completed = tasks.filter((t) => t.status === "Completed").length;
-  const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const completed  = tasks.filter((t) => t.status === "Completed").length;
+  const rate       = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   const donutOptions = {
     chart: { type: "pie", backgroundColor: "transparent", height: 220 },
@@ -27,34 +28,33 @@ export default function AdminOverview() {
     tooltip: { pointFormat: "<b>{point.y}</b> tasks ({point.percentage:.0f}%)" },
     plotOptions: { pie: { innerSize: "65%", dataLabels: { enabled: false } } },
     series: [{ name: "Tasks", colorByPoint: true, data: [
-      { name: "Completed", y: completed || 0, color: "#10b981" },
-      { name: "In Progress", y: inProgress || 0, color: "#3b82f6" },
-      { name: "Pending", y: pending || 0, color: "#f59e0b" }
+      { name: "Completed",  y: completed  || 0, color: "#10b981" },
+      { name: "In Progress",y: inProgress || 0, color: "#3b82f6" },
+      { name: "Pending",    y: pending    || 0, color: "#f59e0b" },
     ]}],
-    credits: { enabled: false },
-    legend: { enabled: false }
+    credits: { enabled: false }, legend: { enabled: false },
   };
 
   const barOptions = {
     chart: { type: "column", backgroundColor: "transparent", height: 220 },
     title: { text: null },
-    xAxis: { categories: employees.filter((e) => e.id !== "admin").map((e) => e.name.split(" ")[0]), labels: { style: { color: "var(--text-base)", fontSize: "11px" } }, lineColor: "var(--border-base)" },
+    xAxis: { categories: empList.map((e) => e.name.split(" ")[0]), labels: { style: { color: "var(--text-base)", fontSize: "11px" } }, lineColor: "var(--border-base)" },
     yAxis: { title: { text: null }, gridLineColor: "var(--border-base)", labels: { style: { color: "var(--text-base)" } } },
     tooltip: { backgroundColor: "var(--card-base)", style: { color: "var(--text-base)" }, borderColor: "var(--border-base)" },
     plotOptions: { column: { borderRadius: 6 } },
     series: [
-      { name: "Assigned", data: employees.filter((e) => e.id !== "admin").map((e) => tasks.filter((t) => t.employeeId === e.id).length), color: "var(--primary)" },
-      { name: "Completed", data: employees.filter((e) => e.id !== "admin").map((e) => tasks.filter((t) => t.employeeId === e.id && t.status === "Completed").length), color: "#10b981" }
+      { name: "Assigned",  data: empList.map((e) => tasks.filter((t) => t.employeeId === e.id).length), color: "var(--primary)" },
+      { name: "Completed", data: empList.map((e) => tasks.filter((t) => t.employeeId === e.id && t.status === "Completed").length), color: "#10b981" },
     ],
     credits: { enabled: false },
-    legend: { itemStyle: { color: "var(--text-base)", fontSize: "11px" } }
+    legend: { itemStyle: { color: "var(--text-base)", fontSize: "11px" } },
   };
 
   const stats = [
-    { label: "Total Tasks", value: total, icon: RiTaskLine, color: "text-[var(--primary)]", bg: "bg-[var(--primary)]/10", border: "border-[var(--primary)]/20" },
-    { label: "Pending", value: pending, icon: RiTimeLine, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-    { label: "In Progress", value: inProgress, icon: RiBarChartLine, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-    { label: "Completed", value: completed, icon: RiCheckboxCircleLine, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" }
+    { label: "Total Tasks",  value: total,      icon: RiTaskLine,            color: "text-[var(--primary)]", bg: "bg-[var(--primary)]/10", border: "border-[var(--primary)]/20" },
+    { label: "Pending",      value: pending,    icon: RiTimeLine,            color: "text-amber-500",        bg: "bg-amber-500/10",        border: "border-amber-500/20" },
+    { label: "In Progress",  value: inProgress, icon: RiBarChartLine,        color: "text-blue-500",         bg: "bg-blue-500/10",         border: "border-blue-500/20" },
+    { label: "Completed",    value: completed,  icon: RiCheckboxCircleLine,  color: "text-emerald-500",      bg: "bg-emerald-500/10",      border: "border-emerald-500/20" },
   ];
 
   return (
@@ -85,7 +85,7 @@ export default function AdminOverview() {
           <div className="flex items-center gap-4 flex-wrap">
             <HC highcharts={Highcharts} options={donutOptions} />
             <div className="space-y-3 text-xs font-bold">
-              {[["#10b981", "Completed", completed], ["#3b82f6", "In Progress", inProgress], ["#f59e0b", "Pending", pending]].map(([color, label, val]) => (
+              {[["#10b981","Completed",completed],["#3b82f6","In Progress",inProgress],["#f59e0b","Pending",pending]].map(([color, label, val]) => (
                 <div key={label} className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: color }} />
                   <span className="text-[var(--text-base)] opacity-60">{label}:</span>
@@ -95,7 +95,6 @@ export default function AdminOverview() {
             </div>
           </div>
         </div>
-
         <div className="bg-[var(--card-base)] border border-[var(--border-base)] rounded-2xl p-5">
           <h3 className="text-sm font-black text-[var(--text-base)] uppercase tracking-wider opacity-70 mb-2">Workload by Employee</h3>
           <HC highcharts={Highcharts} options={barOptions} />
@@ -119,7 +118,7 @@ export default function AdminOverview() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-base)]/40">
-              {employees.map((emp) => {
+              {empList.map((emp) => {
                 const empTasks = tasks.filter((t) => t.employeeId === emp.id);
                 const done = empTasks.filter((t) => t.status === "Completed").length;
                 const busy = empTasks.some((t) => t.status === "In Progress");
@@ -138,8 +137,8 @@ export default function AdminOverview() {
                     <td className="p-4 text-center font-bold text-emerald-500">{done}</td>
                     <td className="p-4 text-center font-bold text-amber-500">⭐ {emp.rating?.toFixed(1)}</td>
                     <td className="p-4 text-right">
-                      <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${emp.id === "admin" ? "bg-indigo-500/10 text-indigo-400" : busy ? "bg-blue-500/10 text-blue-400" : "bg-emerald-500/10 text-emerald-400"}`}>
-                        {emp.id === "admin" ? "Admin" : busy ? "Busy" : "Available"}
+                      <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${busy ? "bg-blue-500/10 text-blue-400" : "bg-emerald-500/10 text-emerald-400"}`}>
+                        {busy ? "Busy" : "Available"}
                       </span>
                     </td>
                   </tr>

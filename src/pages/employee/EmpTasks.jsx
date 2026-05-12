@@ -1,36 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { RiPlayLine, RiCheckLine, RiTimeLine } from "react-icons/ri";
 import toast from "react-hot-toast";
-import { getStorage, setStorage } from "../../utils/mockData";
-import { useApp } from "../../context/AppContext";
+import { api } from "../../utils/api";
 
 const priorityStyle = { High: "bg-rose-500/10 text-rose-400", Medium: "bg-amber-500/10 text-amber-400", Low: "bg-emerald-500/10 text-emerald-400" };
-const statusStyle = { Completed: "bg-emerald-500/10 text-emerald-400", "In Progress": "bg-blue-500/10 text-blue-400", Pending: "bg-amber-500/10 text-amber-400" };
+const statusStyle   = { Completed: "bg-emerald-500/10 text-emerald-400", "In Progress": "bg-blue-500/10 text-blue-400", Pending: "bg-amber-500/10 text-amber-400" };
 
 export default function EmpTasks() {
-  const { currentUser } = useApp();
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks]   = useState([]);
   const [filter, setFilter] = useState("All");
 
-  useEffect(() => {
-    setTasks(getStorage("apex_tasks", []).filter((t) => t.employeeId === currentUser?.id));
-  }, [currentUser]);
+  useEffect(() => { api.getTasks().then(setTasks).catch(() => {}); }, []);
 
-  const saveTasks = (updated) => {
-    setTasks(updated);
-    const global = getStorage("apex_tasks", []);
-    setStorage("apex_tasks", global.map((t) => { const m = updated.find((u) => u.id === t.id); return m || t; }));
-  };
-
-  const advance = (task) => {
+  const advance = async (task) => {
     const next = task.status === "Pending" ? "In Progress" : task.status === "In Progress" ? "Completed" : null;
     if (!next) return;
-    saveTasks(tasks.map((t) => t.id === task.id ? { ...t, status: next } : t));
-    toast.success(`Task marked as "${next}"`);
-    if (next === "Completed") {
-      const notifs = getStorage("apex_notifications", []);
-      setStorage("apex_notifications", [{ id: "notif_" + Date.now(), content: `${currentUser.name} completed: "${task.name}"`, date: new Date().toISOString(), read: false }, ...notifs]);
-    }
+    try {
+      const updated = await api.updateStatus(task.id, next);
+      setTasks((prev) => prev.map((t) => t.id === task.id ? updated : t));
+      toast.success(`Task marked as "${next}"`);
+    } catch (err) { toast.error(err.message); }
   };
 
   const filtered = filter === "All" ? tasks : tasks.filter((t) => t.status === filter);
@@ -42,7 +31,6 @@ export default function EmpTasks() {
         <p className="text-sm text-[var(--text-base)] opacity-50 mt-0.5">{tasks.length} assigned · Keep your board updated</p>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex gap-2 flex-wrap">
         {["All", "Pending", "In Progress", "Completed"].map((s) => (
           <button key={s} onClick={() => setFilter(s)}
@@ -69,16 +57,14 @@ export default function EmpTasks() {
                 <h3 className="font-bold text-sm text-[var(--text-base)] leading-snug">{task.name}</h3>
                 <p className="text-xs text-[var(--text-base)] opacity-55 leading-relaxed line-clamp-2">{task.description}</p>
               </div>
-
               <div className="mt-4 pt-4 border-t border-[var(--border-base)]/50 flex items-center justify-between gap-3">
                 <span className="text-[10px] font-bold text-[var(--text-base)] opacity-40">📅 Deadline: {task.deadline}</span>
-                {task.status !== "Completed" && (
+                {task.status !== "Completed" ? (
                   <button onClick={() => advance(task)}
                     className={`flex items-center gap-1.5 font-bold py-2 px-4 rounded-xl text-xs cursor-pointer transition-all shadow-md ${task.status === "Pending" ? "bg-amber-500 hover:brightness-110 text-white shadow-amber-500/20" : "bg-blue-500 hover:brightness-110 text-white shadow-blue-500/20"}`}>
                     {task.status === "Pending" ? <><RiPlayLine /> Start Task</> : <><RiCheckLine /> Mark Done</>}
                   </button>
-                )}
-                {task.status === "Completed" && (
+                ) : (
                   <span className="flex items-center gap-1.5 text-emerald-500 text-xs font-black"><RiCheckLine /> Completed</span>
                 )}
               </div>

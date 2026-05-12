@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   RiDashboardLine, RiTaskLine, RiTeamLine, RiFileTextLine,
-  RiBarChartLine, RiLogoutBoxLine, RiSparklingFill, RiMenuFoldLine, RiMenuUnfoldLine
+  RiBarChartLine, RiLogoutBoxLine, RiMenuFoldLine, RiMenuUnfoldLine
 } from "react-icons/ri";
 import { useApp } from "../context/AppContext";
 
@@ -12,26 +12,23 @@ export default function Sidebar() {
   const isAdmin = currentUser?.role === "Admin";
 
   const adminLinks = [
-    { to: "/admin", label: "Dashboard", icon: RiDashboardLine, end: true },
-    { to: "/admin/tasks", label: "Tasks Board", icon: RiTaskLine },
-    { to: "/admin/employees", label: "Employees", icon: RiTeamLine },
-    { to: "/admin/reports", label: "Daily Logs", icon: RiFileTextLine },
-    { to: "/admin/analytics", label: "Analytics", icon: RiBarChartLine }
+    { to: "/admin",            label: "Dashboard",  icon: RiDashboardLine, end: true },
+    { to: "/admin/tasks",      label: "Tasks Board", icon: RiTaskLine },
+    { to: "/admin/employees",  label: "Employees",  icon: RiTeamLine },
+    { to: "/admin/reports",    label: "Daily Logs", icon: RiFileTextLine },
+    { to: "/admin/analytics",  label: "Analytics",  icon: RiBarChartLine }
   ];
 
   const empLinks = [
-    { to: "/dashboard", label: "Dashboard", icon: RiDashboardLine, end: true },
-    { to: "/dashboard/tasks", label: "My Tasks", icon: RiTaskLine },
-    { to: "/dashboard/reports", label: "Daily Report", icon: RiFileTextLine },
-    { to: "/dashboard/analytics", label: "My Analytics", icon: RiBarChartLine }
+    { to: "/dashboard",            label: "Dashboard",   icon: RiDashboardLine, end: true },
+    { to: "/dashboard/tasks",      label: "My Tasks",    icon: RiTaskLine },
+    { to: "/dashboard/reports",    label: "Daily Report",icon: RiFileTextLine },
+    { to: "/dashboard/analytics",  label: "My Analytics",icon: RiBarChartLine }
   ];
 
   const links = isAdmin ? adminLinks : empLinks;
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const handleLogout = () => { logout(); navigate("/login"); };
 
   return (
     <>
@@ -39,38 +36,46 @@ export default function Sidebar() {
         <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden" />
       )}
 
-      <aside className={`fixed lg:sticky top-0 left-0 z-50 h-screen bg-[var(--card-base)] border-r border-[var(--border-base)] flex flex-col transition-all duration-300 ${sidebarOpen ? "w-64 translate-x-0" : "w-0 lg:w-20 -translate-x-full lg:translate-x-0"} overflow-hidden`}>
-        {/* Logo */}
+      <aside className={`fixed lg:sticky top-0 left-0 z-50 h-screen bg-[var(--card-base)] border-r border-[var(--border-base)] flex flex-col transition-all duration-300 ${sidebarOpen ? "w-64 translate-x-0" : "w-0 lg:w-[72px] -translate-x-full lg:translate-x-0"}`}>
+
+        {/* ── Header ── */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-[var(--border-base)] shrink-0">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[var(--primary)] to-[var(--secondary)] flex items-center justify-center shrink-0 shadow-lg">
-              <RiSparklingFill className="text-white text-lg" />
+          {sidebarOpen ? (
+            /* Expanded — full portal badge */
+            <div className={`flex items-center gap-2.5 px-3 py-2 rounded-xl w-full ${isAdmin ? "bg-indigo-500/10 border border-indigo-500/20" : "bg-emerald-500/10 border border-emerald-500/20"}`}>
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-white text-xs shrink-0 ${isAdmin ? "bg-indigo-500" : "bg-emerald-500"}`}>
+                {isAdmin ? "A" : "E"}
+              </div>
+              <div className="overflow-hidden">
+                <p className={`text-xs font-black uppercase tracking-wider truncate ${isAdmin ? "text-indigo-400" : "text-emerald-400"}`}>
+                  {isAdmin ? "Admin Portal" : "Employee Portal"}
+                </p>
+                <p className="text-[10px] text-[var(--text-base)] opacity-35 font-semibold truncate">
+                  {currentUser?.name}
+                </p>
+              </div>
             </div>
-            {sidebarOpen && (
-              <span className="font-black text-lg tracking-widest bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] bg-clip-text text-transparent whitespace-nowrap">
-                APEX
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden lg:flex w-8 h-8 rounded-lg bg-[var(--bg-base)] border border-[var(--border-base)] items-center justify-center text-[var(--text-base)] opacity-60 hover:opacity-100 cursor-pointer transition-all shrink-0"
-          >
-            {sidebarOpen ? <RiMenuFoldLine className="text-base" /> : <RiMenuUnfoldLine className="text-base" />}
-          </button>
+          ) : (
+            /* Collapsed — AP / EP initials */
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs mx-auto ${isAdmin ? "bg-indigo-500" : "bg-emerald-500"}`}>
+              {isAdmin ? "AP" : "EP"}
+            </div>
+          )}
+
+       
+
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="hidden lg:flex absolute bottom-[72px] left-1/2 -translate-x-1/2 w-7 h-7 rounded-lg bg-[var(--bg-base)] border border-[var(--border-base)] items-center justify-center text-[var(--text-base)] opacity-50 hover:opacity-100 cursor-pointer transition-all"
+            >
+              <RiMenuUnfoldLine className="text-sm" />
+            </button>
+          )}
         </div>
 
-        {/* Role Badge */}
-        {sidebarOpen && (
-          <div className="px-4 py-3 border-b border-[var(--border-base)]">
-            <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${isAdmin ? "bg-indigo-500/15 text-indigo-400" : "bg-emerald-500/15 text-emerald-400"}`}>
-              {isAdmin ? "⚡ Administrator" : "👤 Employee Portal"}
-            </span>
-          </div>
-        )}
-
-        {/* Nav Links */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        {/* ── Nav Links ── */}
+        <nav className="flex-1 p-2.5 space-y-0.5 overflow-y-auto">
           {links.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -78,10 +83,10 @@ export default function Sidebar() {
               end={end}
               onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
               className={({ isActive }) =>
-                `flex items-center gap-3.5 py-3 px-3.5 rounded-xl font-semibold text-sm transition-all cursor-pointer relative group ${
+                `flex items-center gap-3 py-2.5 px-3 rounded-xl font-semibold text-sm transition-all cursor-pointer relative group ${
                   isActive
-                    ? "bg-gradient-to-r from-[var(--primary)]/15 to-[var(--secondary)]/5 text-[var(--primary)] border-l-[3px] border-[var(--primary)]"
-                    : "text-[var(--text-base)] opacity-55 hover:opacity-100 hover:bg-[var(--bg-base)]/50"
+                    ? "bg-[var(--primary)]/10 text-[var(--primary)] border-l-[3px] border-[var(--primary)]"
+                    : "text-[var(--text-base)] opacity-50 hover:opacity-100 hover:bg-[var(--bg-base)]/60"
                 }`
               }
             >
@@ -89,7 +94,7 @@ export default function Sidebar() {
               {sidebarOpen ? (
                 <span className="truncate">{label}</span>
               ) : (
-                <div className="absolute left-[72px] bg-[var(--card-base)] border border-[var(--border-base)] text-[var(--text-base)] text-xs font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none shadow-xl whitespace-nowrap z-50 translate-x-2 group-hover:translate-x-0 transition-all">
+                <div className="absolute left-[60px] bg-[var(--card-base)] border border-[var(--border-base)] text-[var(--text-base)] text-xs font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none shadow-xl whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0 transition-all">
                   {label}
                 </div>
               )}
@@ -97,12 +102,12 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        {/* User Profile */}
-        <div className="p-3 border-t border-[var(--border-base)] shrink-0">
+        {/* ── User Profile ── */}
+        <div className="p-2.5 border-t border-[var(--border-base)] shrink-0">
           {sidebarOpen ? (
-            <div className="flex items-center justify-between gap-2 bg-[var(--bg-base)]/50 p-2.5 rounded-2xl border border-[var(--border-base)]/50">
+            <div className="flex items-center justify-between gap-2 bg-[var(--bg-base)]/50 p-2.5 rounded-xl border border-[var(--border-base)]/50">
               <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${currentUser?.avatarColor || "from-primary to-secondary"} flex items-center justify-center font-black text-white text-sm shrink-0 uppercase`}>
+                <div className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${currentUser?.avatarColor || "from-indigo-500 to-purple-600"} flex items-center justify-center font-black text-white text-xs shrink-0 uppercase`}>
                   {currentUser?.name?.charAt(0)}
                 </div>
                 <div className="overflow-hidden">
@@ -125,6 +130,7 @@ export default function Sidebar() {
             </div>
           )}
         </div>
+
       </aside>
     </>
   );

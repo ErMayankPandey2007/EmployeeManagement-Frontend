@@ -2,25 +2,25 @@ import React, { useState, useEffect } from "react";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 const HC = HighchartsReact.default ?? HighchartsReact;
-import { getStorage } from "../../utils/mockData";
+import { api } from "../../utils/api";
 import { useApp } from "../../context/AppContext";
 import { RiStarFill } from "react-icons/ri";
 
 export default function EmpAnalytics() {
   const { currentUser } = useApp();
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks]     = useState([]);
   const [reports, setReports] = useState([]);
 
   useEffect(() => {
-    setTasks(getStorage("apex_tasks", []).filter((t) => t.employeeId === currentUser?.id));
-    setReports(getStorage("apex_reports", []).filter((r) => r.employeeId === currentUser?.id));
-  }, [currentUser]);
+    api.getTasks().then(setTasks).catch(() => {});
+    api.getReports().then(setReports).catch(() => {});
+  }, []);
 
-  const total = tasks.length;
-  const completed = tasks.filter((t) => t.status === "Completed").length;
+  const total      = tasks.length;
+  const completed  = tasks.filter((t) => t.status === "Completed").length;
   const inProgress = tasks.filter((t) => t.status === "In Progress").length;
-  const pending = tasks.filter((t) => t.status === "Pending").length;
-  const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const pending    = tasks.filter((t) => t.status === "Pending").length;
+  const rate       = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   const donutOptions = {
     chart: { type: "pie", backgroundColor: "transparent", height: 260 },
@@ -28,11 +28,11 @@ export default function EmpAnalytics() {
     tooltip: { pointFormat: "<b>{point.y}</b> ({point.percentage:.1f}%)" },
     plotOptions: { pie: { innerSize: "60%", dataLabels: { enabled: true, format: "{point.name}: {point.y}", style: { color: "var(--text-base)", fontSize: "11px", fontWeight: "600", textOutline: "none" } } } },
     series: [{ name: "Tasks", colorByPoint: true, data: [
-      { name: "Completed", y: completed || 0, color: "#10b981" },
-      { name: "In Progress", y: inProgress || 0, color: "#3b82f6" },
-      { name: "Pending", y: pending || 0, color: "#f59e0b" }
+      { name: "Completed",  y: completed  || 0, color: "#10b981" },
+      { name: "In Progress",y: inProgress || 0, color: "#3b82f6" },
+      { name: "Pending",    y: pending    || 0, color: "#f59e0b" },
     ]}],
-    credits: { enabled: false }
+    credits: { enabled: false },
   };
 
   const hoursOptions = {
@@ -43,7 +43,7 @@ export default function EmpAnalytics() {
     tooltip: { backgroundColor: "var(--card-base)", style: { color: "var(--text-base)" }, borderColor: "var(--border-base)", valueSuffix: " hrs" },
     plotOptions: { column: { borderRadius: 6, dataLabels: { enabled: true, style: { color: "var(--text-base)", textOutline: "none", fontSize: "10px" } } } },
     series: [{ name: "Hours", data: reports.map((r) => r.hours), color: "var(--primary)" }],
-    credits: { enabled: false }, legend: { enabled: false }
+    credits: { enabled: false }, legend: { enabled: false },
   };
 
   return (
@@ -55,10 +55,10 @@ export default function EmpAnalytics() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Tasks", value: total, color: "text-[var(--primary)]" },
-          { label: "Completion Rate", value: `${rate}%`, color: "text-emerald-500" },
-          { label: "Reports Filed", value: reports.length, color: "text-blue-500" },
-          { label: "My Rating", value: currentUser?.rating?.toFixed(1), color: "text-amber-500", icon: true }
+          { label: "Total Tasks",     value: total,                          color: "text-[var(--primary)]" },
+          { label: "Completion Rate", value: `${rate}%`,                     color: "text-emerald-500" },
+          { label: "Reports Filed",   value: reports.length,                 color: "text-blue-500" },
+          { label: "My Rating",       value: currentUser?.rating?.toFixed(1),color: "text-amber-500", icon: true },
         ].map(({ label, value, color, icon }) => (
           <div key={label} className="bg-[var(--card-base)] border border-[var(--border-base)] rounded-2xl p-5 text-center">
             <p className="text-xs font-bold text-[var(--text-base)] opacity-50 uppercase tracking-wider">{label}</p>
@@ -74,13 +74,10 @@ export default function EmpAnalytics() {
           <HC highcharts={Highcharts} options={donutOptions} />
         </div>
         <div className="bg-[var(--card-base)] border border-[var(--border-base)] rounded-2xl p-5">
-          {reports.length > 0 ? (
-            <HC highcharts={Highcharts} options={hoursOptions} />
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <p className="text-xs text-[var(--text-base)] opacity-40 font-semibold">Submit reports to see hours chart</p>
-            </div>
-          )}
+          {reports.length > 0
+            ? <HC highcharts={Highcharts} options={hoursOptions} />
+            : <div className="h-full flex items-center justify-center"><p className="text-xs text-[var(--text-base)] opacity-40 font-semibold">Submit reports to see hours chart</p></div>
+          }
         </div>
       </div>
     </div>
